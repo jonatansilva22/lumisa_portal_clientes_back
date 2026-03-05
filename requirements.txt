@@ -1,0 +1,22 @@
+fastapi
+uvicorn[standard]
+
+# Base de datos
+sqlalchemy
+pymysql
+alembic
+cryptography
+
+# Configuración y validación
+pydantic
+python-dotenv
+pydantic-settings
+email-validator
+
+# Seguridad
+passlib[bcrypt]
+python-jose
+python-multipart
+
+# Logging
+loguru
