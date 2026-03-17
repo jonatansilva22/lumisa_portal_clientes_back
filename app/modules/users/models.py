@@ -1,5 +1,6 @@
 # app/modules/users/models.py
-from sqlalchemy import Column, Integer, String, Boolean, SmallInteger, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, SmallInteger, ForeignKey, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -26,9 +27,12 @@ class User(Base):
     image_url = Column(String(255))
 
     role_id = Column(ForeignKey("roles.id"), nullable=False, index=True)
-    company_id = Column(ForeignKey("companies.id"), nullable=True, )
+    company_id = Column(ForeignKey("companies.id"), nullable=True)
 
     active = Column(Boolean, default=False, nullable=False)
+
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
 
     # Relaciones
     role = relationship("Role", back_populates="users")
