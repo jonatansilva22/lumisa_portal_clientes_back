@@ -9,6 +9,7 @@ from app import models
 
 #Aqui vamos a poner los import de nuestras funcionalidades (siempre los router)
 from app.modules.auth import router as auth_router
+from app.modules.products import router as products_router
 
 
 app = FastAPI(
@@ -19,6 +20,7 @@ app = FastAPI(
 
 #Y aqui vamos a incluir los routers de cada modulo, para que las rutas esten disponibles en la app
 app.include_router(auth_router)
+app.include_router(products_router)
 
 @app.get("/")
 def root():
