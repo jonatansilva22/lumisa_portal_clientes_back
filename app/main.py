@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.core.config import settings
+from app.core.cors import setup_cors
 from app.db.base import Base
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
@@ -10,6 +11,8 @@ from app import models
 #Aqui vamos a poner los import de nuestras funcionalidades (siempre los router)
 from app.modules.auth import router as auth_router
 from app.modules.products import router as products_router
+from app.modules.users import router as users_router
+from app.modules.companies import router as companies_router
 
 
 app = FastAPI(
@@ -17,10 +20,14 @@ app = FastAPI(
     version="0.1.0"
 )
 
+setup_cors(app, settings.cors_origins)
+
 
 #Y aqui vamos a incluir los routers de cada modulo, para que las rutas esten disponibles en la app
 app.include_router(auth_router)
 app.include_router(products_router)
+app.include_router(users_router)
+app.include_router(companies_router)
 
 @app.get("/")
 def root():
