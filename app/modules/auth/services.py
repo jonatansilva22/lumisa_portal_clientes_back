@@ -7,13 +7,10 @@ from app.modules.users.models import User
 from app.utils.jwt import create_access_token
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    #Retorna un objeto **User** si las credenciales son válidas, sino retorna ``None``.
 
-    #La función busca en la base de datos un usuario con el email dado
-    #y verifica la contraseña contra el hash almacenado usando
-    #:func:`app.core.security.verify_password`.
-    
+def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    # Retorna un objeto User si las credenciales son válidas, sino None.
+    # Valida la contraseña usando hash seguro.
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -23,17 +20,12 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     return user
 
 
-def login(db: Session, email: str, password: str) -> Optional[str]:
-    #Autentica y retorna un token JWT de acceso si tiene éxito.
-
-    #Si la autenticación falla, la función retorna ``None`` para que la persona que llama
-    #pueda lanzar un error HTTP apropiado. El payload del token actualmente contiene
-    #solo el id del usuario bajo la claim ``sub``; otros claims se pueden agregar después.
-    
+def login(db: Session, email: str, password: str) -> Optional[tuple[str, User]]:
+    # Autentica y retorna token JWT + usuario.
 
     user = authenticate_user(db, email, password)
     if not user:
         return None
 
     token = create_access_token({"sub": str(user.id)})
-    return token
+    return token, user
