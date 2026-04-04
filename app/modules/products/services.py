@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.modules.products.models import Product, ProductType, Unit
 from app.modules.products.schemas import ProductCreate, ProductUpdate
+def get_product_types(db: Session) -> list[ProductType]:
+    return db.query(ProductType).order_by(ProductType.name).all()
+
+
+def get_units(db: Session) -> list[Unit]:
+    return db.query(Unit).order_by(Unit.name).all()
 
 
 def get_products(
