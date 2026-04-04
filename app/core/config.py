@@ -19,6 +19,11 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = ""
 
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_REGION: str | None = None
+    AWS_S3_BUCKET: str | None = None
+
     @property
     def cors_origins(self) -> list[str]:
         value = self.CORS_ORIGINS
