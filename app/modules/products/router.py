@@ -5,9 +5,47 @@ from app.db.deps import get_db
 from app.modules.products import schemas, services
 from app.modules.users.models import User
 from app.utils.auth import admin_required, product_read_required
+from app.utils.s3 import generate_presigned_url
+import os
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 
 router = APIRouter(prefix="/products", tags=["products"])
 
+@router.post("/s3-upload-url", response_model=dict)
+def get_s3_upload_url(
+    module: str = Body(..., embed=True),
+    filename: str = Body(..., embed=True),
+    content_type: str = Body(..., embed=True),
+    _current_user: User = Depends(admin_required),
+):
+    """
+    Devuelve una URL presignada para subir un archivo a S3 para cualquier módulo. Solo admin.
+    """
+    bucket = os.getenv("AWS_S3_BUCKET")
+    if not bucket:
+        raise HTTPException(status_code=500, detail="No está configurado el bucket de S3")
+    key = f"{module}/{filename}"
+    url = generate_presigned_url(bucket, key, content_type)
+    if not url:
+        raise HTTPException(status_code=500, detail="No se pudo generar la URL presignada")
+    return {"upload_url": url, "object_url": f"https://{bucket}.s3.amazonaws.com/{key}"}
+
+@router.get("/types", response_model=list[schemas.ProductTypeOut])
+def list_product_types(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(product_read_required),
+):
+    #Lista todos los tipos de producto para cualquier usuario con permiso de lectura.
+    return services.get_product_types(db)
+
+
+@router.get("/units", response_model=list[schemas.UnitOut])
+def list_units(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(product_read_required),
+):
+    #Lista todas las unidades para cualquier usuario con permiso de lectura.
+    return services.get_units(db)
 
 @router.get("/", response_model=list[schemas.ProductOut])
 def list_products(
@@ -78,3 +116,4 @@ def delete_product(
 
     services.delete_product(db, product)
     return None
+
