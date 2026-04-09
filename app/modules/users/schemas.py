@@ -26,6 +26,8 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
     image_url: Optional[str] = None
+    role_id: Optional[int] = None
+    company_id: Optional[int] = None
 
 # Para cambiar contraseña
 class PasswordUpdate(BaseModel):
