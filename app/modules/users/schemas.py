@@ -41,6 +41,7 @@ class UserResponse(BaseModel):
     image_url: Optional[str] = None
     active: bool
     role: RoleResponse
+    company_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
