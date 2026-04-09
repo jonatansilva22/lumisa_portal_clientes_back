@@ -16,3 +16,5 @@ class Company(Base):
 
     users = relationship("User", back_populates="company")
     orders = relationship("Order", back_populates="company")
+    name = Column(String(150), nullable=False)
+    observations = Column(Text, nullable=True)
