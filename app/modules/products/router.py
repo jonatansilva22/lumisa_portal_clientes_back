@@ -8,6 +8,7 @@ from app.utils.auth import admin_required, product_read_required
 from app.utils.s3 import generate_presigned_url
 import os
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
+from app.utils.products import is_product_in_any_cart
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -109,11 +110,11 @@ def delete_product(
     db: Session = Depends(get_db),
     _current_user: User = Depends(admin_required),
 ):
-    #Borra un producto mediante su id. Solo para el administrador.
     product = services.get_product_by_id(db, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
-
+    if is_product_in_any_cart(db, product_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede eliminar: el producto está en uno o más carritos de compras.")
     services.delete_product(db, product)
     return None
 
