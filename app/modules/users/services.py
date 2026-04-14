@@ -48,12 +48,16 @@ def update_user(db: Session, user_id: int, data: UserUpdate):
     if not user:
         return None
 
-    if data.name:
+    if data.name is not None:
         user.name = data.name
-    if data.last_name:
+    if data.last_name is not None:
         user.last_name = data.last_name
-    if data.image_url:
+    if data.image_url is not None:
         user.image_url = data.image_url
+    if data.role_id is not None:
+        user.role_id = data.role_id
+    if data.company_id is not None:
+        user.company_id = data.company_id
 
     db.commit()
     db.refresh(user)
