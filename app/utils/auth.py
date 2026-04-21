@@ -78,4 +78,5 @@ def require_roles(allowed_roles: Iterable[str]):
 
 
 admin_required = require_roles(["administrador", "admin"])
+staff_required = require_roles(["administrador", "admin", "asesor"])
 product_read_required = require_roles(["administrador", "admin", "asesor", "cliente"])
