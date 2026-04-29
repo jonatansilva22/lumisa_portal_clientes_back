@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     AWS_REGION: str | None = None
     AWS_S3_BUCKET: str | None = None
 
+    MP_ACCESS_TOKEN: str | None = None
+    MP_PUBLIC_KEY: str | None = None
+
     @property
     def cors_origins(self) -> list[str]:
         value = self.CORS_ORIGINS
