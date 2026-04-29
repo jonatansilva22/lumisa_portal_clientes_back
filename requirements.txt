@@ -23,3 +23,6 @@ loguru
 
 # AWS S3
 boto3
+
+# MercadoPago SDK
+mercadopago
