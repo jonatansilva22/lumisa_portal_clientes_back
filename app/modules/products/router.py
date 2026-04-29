@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from sqlalchemy.orm import Session
 
 from app.db.deps import get_db
@@ -7,7 +7,6 @@ from app.modules.users.models import User
 from app.utils.auth import admin_required, product_read_required
 from app.utils.s3 import generate_presigned_url
 import os
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from app.utils.products import is_product_in_any_cart
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -64,12 +63,16 @@ def list_products(
 def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(product_read_required),
+    current_user: User = Depends(product_read_required),
 ):
-    #Obtiene un producto por su id para el administrador, cliente y asesor.
-    product = services.get_product_by_id(db, product_id)
+    # Solo clientes y asesores: no pueden ver productos inactivos
+    role_name = (current_user.role.name or "").lower()
+    if role_name in ["cliente", "asesor"]:
+        product = services.get_product_by_id(db, product_id, active_only=True)
+    else:
+        product = services.get_product_by_id(db, product_id)
     if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado o inactivo")
     return product
 
 
@@ -117,4 +120,3 @@ def delete_product(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede eliminar: el producto está en uno o más carritos de compras.")
     services.delete_product(db, product)
     return None
-
