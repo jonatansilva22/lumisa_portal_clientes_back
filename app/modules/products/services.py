@@ -26,9 +26,12 @@ def get_products(
     return query.offset(skip).limit(limit).all()
 
 
-def get_product_by_id(db: Session, product_id: int) -> Optional[Product]:
-    #Regresa un producto por su id o ninguno si no existe.
-    return db.query(Product).filter(Product.id == product_id).first()
+def get_product_by_id(db: Session, product_id: int, active_only: bool = False) -> Optional[Product]:
+    #Regresa un producto por su id o ninguno si no existe o si está inactivo (si active_only=True).
+    query = db.query(Product).filter(Product.id == product_id)
+    if active_only:
+        query = query.filter(Product.active.is_(True))
+    return query.first()
 
 
 def product_name_exists(db: Session, name: str, exclude_id: Optional[int] = None) -> bool:
