@@ -89,25 +89,32 @@ def update_manual_payment_status(payment_id: int, new_status_id: int, db: Sessio
 @router.post("/webhook/mercadopago")
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
+    print("[MP Webhook] Cuerpo recibido:", data)
     payment_id = data.get("data", {}).get("id") or data.get("id")
     if not payment_id:
+        print("[MP Webhook] No se recibió payment_id")
         return {"status": "no payment id"}
     mp = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN", ""))
     payment_info = mp.payment().get(payment_id)
     payment = payment_info.get("response", {})
+    print(f"[MP Webhook] Detalle del pago (ID {payment_id}): status={payment.get('status')}, status_detail={payment.get('status_detail')}, external_reference={payment.get('external_reference')}")
     if payment.get("status") != "approved":
-        return {"status": "not approved"}
+        print(f"[MP Webhook] Pago NO aprobado. status={payment.get('status')}, status_detail={payment.get('status_detail')}")
+        return {"status": "not approved", "mp_status": payment.get("status"), "mp_status_detail": payment.get("status_detail")}
     order_id = payment.get("external_reference")
     if not order_id:
+        print("[MP Webhook] No se recibió external_reference (order_id)")
         return {"status": "no order id"}
     order = db.query(Order).filter(Order.id == int(order_id)).first()
     if not order:
+        print(f"[MP Webhook] No se encontró el pedido con id {order_id}")
         return {"status": "order not found"}
     # Validar stock y descontar en un solo ciclo
     productos_actualizados = []
     for detail in order.order_details:
         product = db.query(Product).filter(Product.id == detail.product_id).with_for_update().first()
         if not product or product.quantity < detail.quantity:
+            print(f"[MP Webhook] Stock insuficiente para producto {detail.product_id}")
             return {"status": f"stock insuficiente para producto {detail.product_id}"}
         product.quantity -= detail.quantity
         productos_actualizados.append(product)
@@ -124,4 +131,5 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     order.status_id = 5  # 5 = pagado
     db.add(order)
     db.commit()
+    print(f"[MP Webhook] Pago registrado y pedido actualizado. order_id={order.id}, payment_id={payment_id}")
     return {"status": "ok"}
