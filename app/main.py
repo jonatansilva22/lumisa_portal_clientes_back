@@ -16,6 +16,7 @@ from app.modules.carts import router as carts_router
 from app.modules.orders import router as orders_router
 from app.modules.chats import router as chats_router
 from app.modules.payments import router as payments_router
+from app.modules.dashboards import router as dashboards_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -40,6 +41,7 @@ app.include_router(carts_router)
 app.include_router(orders_router)
 app.include_router(chats_router)
 app.include_router(payments_router)
+app.include_router(dashboards_router)
 
 @app.get("/")
 def root():
