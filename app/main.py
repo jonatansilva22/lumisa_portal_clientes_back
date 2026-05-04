@@ -5,9 +5,7 @@ from app.core.cors import setup_cors
 from app.db.base import Base
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
-
 from app import models
-
 from app.modules.auth import router as auth_router
 from app.modules.products import router as products_router
 from app.modules.users import router as users_router
