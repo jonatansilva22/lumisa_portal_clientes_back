@@ -43,23 +43,27 @@ def product_name_exists(db: Session, name: str, exclude_id: Optional[int] = None
 
 
 def _validate_fk_entities(db: Session, type_id: int, unit_id: int) -> None:
-    #Lanza ValueError cuando las foreigk key son inválidas.
+    """
+    Lanza ValueError cuando las foreign key son inválidas.
+    """
+    from app.utils.product_errors import PRODUCT_TYPE_NOT_FOUND, PRODUCT_UNIT_NOT_FOUND
     type_exists = db.query(ProductType.id).filter(ProductType.id == type_id).first()
     if not type_exists:
-        raise ValueError("El tipo de producto no existe")
+        raise ValueError(PRODUCT_TYPE_NOT_FOUND)
 
     unit_exists = db.query(Unit.id).filter(Unit.id == unit_id).first()
     if not unit_exists:
-        raise ValueError("La unidad no existe")
+        raise ValueError(PRODUCT_UNIT_NOT_FOUND)
 
 
 def create_product(db: Session, payload: ProductCreate) -> Product:
-    #Crea un producto con las validaciones de negocio.
+    """
+    Crea un producto con validaciones de negocio y errores claros.
+    """
+    from app.utils.product_errors import PRODUCT_NAME_EXISTS
     if product_name_exists(db, payload.name):
-        raise ValueError("Ya existe un producto con ese nombre")
-
+        raise ValueError(PRODUCT_NAME_EXISTS)
     _validate_fk_entities(db, payload.type_id, payload.unit_id)
-
     product = Product(**payload.model_dump())
     db.add(product)
     db.commit()
@@ -68,13 +72,16 @@ def create_product(db: Session, payload: ProductCreate) -> Product:
 
 
 def update_product(db: Session, product: Product, payload: ProductUpdate) -> Product:
-    #Actualiza un producto existenten con payload parcial.
+    """
+    Actualiza un producto existente con validaciones y errores claros.
+    """
+    from app.utils.product_errors import PRODUCT_NAME_EXISTS
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
         return product
 
     if "name" in update_data and product_name_exists(db, update_data["name"], exclude_id=product.id):
-        raise ValueError("Ya existe un producto con ese nombre")
+        raise ValueError(PRODUCT_NAME_EXISTS)
 
     next_type_id = update_data.get("type_id", product.type_id)
     next_unit_id = update_data.get("unit_id", product.unit_id)
