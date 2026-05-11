@@ -96,12 +96,9 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "no payment id"}
     mp = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN", ""))
     payment_info = mp.payment().get(payment_id)
-    payment = payment_info.get("response", {})
-    print(f"[MP Webhook] Detalle del pago (ID {payment_id}): status={payment.get('status')}, status_detail={payment.get('status_detail')}, external_reference={payment.get('external_reference')}")
-    if payment.get("status") != "approved":
-        print(f"[MP Webhook] Pago NO aprobado. status={payment.get('status')}, status_detail={payment.get('status_detail')}")
-        return {"status": "not approved", "mp_status": payment.get("status"), "mp_status_detail": payment.get("status_detail")}
-    order_id = payment.get("external_reference")
+    mp_payment = payment_info.get("response", {})
+    print(f"[MP Webhook] Detalle del pago (ID {payment_id}): status={mp_payment.get('status')}, status_detail={mp_payment.get('status_detail')}, external_reference={mp_payment.get('external_reference')}")
+    order_id = mp_payment.get("external_reference")
     if not order_id:
         print("[MP Webhook] No se recibió external_reference (order_id)")
         return {"status": "no order id"}
@@ -109,27 +106,50 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     if not order:
         print(f"[MP Webhook] No se encontró el pedido con id {order_id}")
         return {"status": "order not found"}
-    # Validar stock y descontar en un solo ciclo
-    productos_actualizados = []
-    for detail in order.order_details:
-        product = db.query(Product).filter(Product.id == detail.product_id).with_for_update().first()
-        if not product or product.quantity < detail.quantity:
-            print(f"[MP Webhook] Stock insuficiente para producto {detail.product_id}")
-            return {"status": f"stock insuficiente para producto {detail.product_id}"}
-        product.quantity -= detail.quantity
-        productos_actualizados.append(product)
-    for product in productos_actualizados:
-        db.add(product)
-    new_payment = Payment(
-        amount=payment.get("transaction_amount"),
-        order_id=order.id,
-        method_id=1,  # Ajusta según tu lógica de métodos
-        status_id=2,  # 2 = pagado
-        paid_at=datetime.utcnow()
-    )
-    db.add(new_payment)
-    order.status_id = 5  # 5 = pagado
-    db.add(order)
-    db.commit()
-    print(f"[MP Webhook] Pago registrado y pedido actualizado. order_id={order.id}, payment_id={payment_id}")
-    return {"status": "ok"}
+    # Buscar el pago pendiente más reciente para este pedido y método tarjeta
+    payment = db.query(Payment).filter(
+        Payment.order_id == order.id,
+        Payment.method_id == 1,  # MercadoPago
+        Payment.status_id == 1   # pendiente
+    ).order_by(Payment.id.desc()).first()
+    if mp_payment.get("status") == "approved":
+        # Validar stock y descontar
+        productos_actualizados = []
+        for detail in order.order_details:
+            product = db.query(Product).filter(Product.id == detail.product_id).with_for_update().first()
+            if not product or product.quantity < detail.quantity:
+                print(f"[MP Webhook] Stock insuficiente para producto {detail.product_id}")
+                return {"status": f"stock insuficiente para producto {detail.product_id}"}
+            product.quantity -= detail.quantity
+            productos_actualizados.append(product)
+        for product in productos_actualizados:
+            db.add(product)
+        if payment:
+            payment.status_id = 2  # Pagado
+            payment.paid_at = datetime.utcnow()
+            db.add(payment)
+        else:
+            payment = Payment(
+                amount=mp_payment.get("transaction_amount"),
+                order_id=order.id,
+                method_id=1,
+                status_id=2,  # pagado
+                paid_at=datetime.utcnow()
+            )
+            db.add(payment)
+        order.status_id = 5  # Pagado
+        db.add(order)
+        db.commit()
+        print(f"[MP Webhook] Pago registrado y pedido actualizado. order_id={order.id}, payment_id={payment_id}")
+        return {"status": "ok"}
+    else:
+        # Si el pago fue rechazado o fallido, marcar como rechazado
+        if payment:
+            payment.status_id = 3  # Rechazado
+            db.add(payment)
+            db.commit()
+            print(f"[MP Webhook] Pago marcado como rechazado. order_id={order.id}, payment_id={payment_id}")
+            return {"status": "rejected", "mp_status": mp_payment.get("status"), "mp_status_detail": mp_payment.get("status_detail")}
+        else:
+            print(f"[MP Webhook] No se encontró pago pendiente para rechazar. order_id={order.id}, payment_id={payment_id}")
+            return {"status": "no pending payment to reject", "mp_status": mp_payment.get("status"), "mp_status_detail": mp_payment.get("status_detail")}

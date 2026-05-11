@@ -18,10 +18,13 @@ def create_payment(db: Session, payment_in: PaymentCreate) -> Payment:
     if order.status_id != 3:
         raise ValueError("Solo se pueden pagar pedidos con estado 'Autorizado'.")
 
-    # Validar que todos los productos del pedido estén activos
+    # Validar que todos los productos del pedido estén activos y tengan stock suficiente
     for detail in order.order_details:
         if not detail.product.active:
             raise ValueError(f"El producto {detail.product_id} está inactivo y no se puede pagar el pedido.")
+        # Validar stock actual
+        if detail.product.quantity < detail.quantity:
+            raise ValueError(f"Stock insuficiente para el producto {detail.product.name}. Disponible: {detail.product.quantity}, requerido: {detail.quantity}")
 
     # Validar que no exista ya un pago pendiente para este pedido,
     # excepto si es de tarjeta (method_id == 1)
