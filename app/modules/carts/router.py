@@ -12,21 +12,33 @@ def get_my_cart(db: Session = Depends(get_db), current_user: User = Depends(get_
     cart = services.get_cart_by_user(db, current_user.id)
     if not cart:
         cart = services.create_cart(db, current_user)
-    total = sum(float(cd.quantity) * float(cd.unit_price) for cd in cart.cart_details)
-    return schemas.CartOut(
-        id=cart.id,
-        user_id=cart.user_id,
-        active=cart.active,
-        cart_details=[
-            schemas.CartDetailOut(
-                id=cd.id,
-                product_id=cd.product_id,
-                quantity=cd.quantity,
-                unit_price=cd.unit_price
-            ) for cd in cart.cart_details
-        ],
-        total=total
-    )
+    # Mostrar SIEMPRE los datos actualizados del producto en el carrito
+    cart_details_out = []
+    total = 0
+    for cd in cart.cart_details:
+        product = cd.product
+        unit_price = float(product.price)
+        subtotal = cd.quantity * unit_price
+        total += subtotal
+        cart_details_out.append(
+            {
+                "id": cd.id,
+                "product_id": cd.product_id,
+                "quantity": cd.quantity,
+                "unit_price": unit_price,
+                "product_name": product.name,
+                "product_image_url": product.image_url,
+                "product_active": product.active,
+                "product_description": product.description,
+            }
+        )
+    return {
+        "id": cart.id,
+        "user_id": cart.user_id,
+        "active": cart.active,
+        "cart_details": cart_details_out,
+        "total": total
+    }
 
 @router.post("/me", response_model=schemas.CartOut)
 def add_product_to_my_cart(payload: schemas.CartDetailCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
