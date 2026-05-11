@@ -57,8 +57,9 @@ def get_order_by_id(db: Session, order_id: int) -> Optional[Order]:
 def cancel_order(db: Session, order: Order, user: User):
     if order.client_id != user.id:
         raise ValueError("No autorizado para cancelar este pedido.")
-    if order.status_id != 1:
-        raise ValueError("Solo se pueden cancelar pedidos pendientes.")
+    # Permitir cancelar si el estado es Pendiente (1), Autorizado (3) o Rechazado (6)
+    if order.status_id not in (1, 3, 6):
+        raise ValueError("Solo se pueden cancelar pedidos en estado Pendiente, Autorizado o Rechazado.")
     order.status_id = 4  # 4 = Cancelado
     db.commit()
     db.refresh(order)
@@ -75,6 +76,10 @@ def assign_advisor_to_order(db: Session, order: Order, advisor_id: int):
     return order
 
 def update_order_status(db: Session, order: Order, new_status_id: int):
+    # No permitir cambiar el estado si el pedido ya está pagado
+    if order.status_id == 5:
+        raise ValueError("No se puede cambiar el estado de un pedido que ya está pagado.")
+
     # Obtener el nombre del nuevo estado
     new_status = db.query(OrderStatus).filter(OrderStatus.id == new_status_id).first()
     order.status_id = new_status_id
