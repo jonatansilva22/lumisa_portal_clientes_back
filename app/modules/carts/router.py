@@ -78,15 +78,14 @@ def update_product_in_my_cart(product_id: int, payload: schemas.CartDetailUpdate
         total=sum(float(cd.quantity) * float(cd.unit_price) for cd in cart.cart_details)
     )
 
-@router.delete("/me/{product_id}", response_model=schemas.CartOut)
-def remove_product_from_my_cart(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+# IMPORTANTE: /me/clear debe ir ANTES de /me/{product_id} para evitar conflicto de rutas con FastAPI.
+@router.delete("/me/clear", response_model=schemas.CartOut)
+def clear_my_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     cart = services.get_cart_by_user(db, current_user.id)
     if not cart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Carrito no encontrado")
-    try:
-        services.remove_product_from_cart(db, cart, product_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    services.clear_cart(db, cart)
     db.refresh(cart)
     return schemas.CartOut(
         id=cart.id,
@@ -103,12 +102,15 @@ def remove_product_from_my_cart(product_id: int, db: Session = Depends(get_db), 
         total=sum(float(cd.quantity) * float(cd.unit_price) for cd in cart.cart_details)
     )
 
-@router.delete("/me/clear", response_model=schemas.CartOut)
-def clear_my_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.delete("/me/{product_id}", response_model=schemas.CartOut)
+def remove_product_from_my_cart(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     cart = services.get_cart_by_user(db, current_user.id)
     if not cart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Carrito no encontrado")
-    services.clear_cart(db, cart)
+    try:
+        services.remove_product_from_cart(db, cart, product_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     db.refresh(cart)
     return schemas.CartOut(
         id=cart.id,

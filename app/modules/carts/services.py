@@ -22,11 +22,14 @@ def add_product_to_cart(db: Session, cart: Cart, payload: CartDetailCreate) -> C
         raise ValueError("Producto no encontrado o inactivo")
     cart_detail = db.query(CartDetail).filter(CartDetail.cart_id == cart.id, CartDetail.product_id == payload.product_id).first()
     nueva_cantidad = payload.quantity
-    if nueva_cantidad > product.quantity:
-        raise ValueError(f"No hay suficiente stock disponible. Stock actual: {product.quantity}")
     if cart_detail:
-        cart_detail.quantity = nueva_cantidad
+        total_cantidad = cart_detail.quantity + nueva_cantidad
+        if total_cantidad > product.quantity:
+            raise ValueError(f"No hay suficiente stock disponible. Stock actual: {product.quantity}")
+        cart_detail.quantity = total_cantidad
     else:
+        if nueva_cantidad > product.quantity:
+            raise ValueError(f"No hay suficiente stock disponible. Stock actual: {product.quantity}")
         cart_detail = CartDetail(cart_id=cart.id, product_id=payload.product_id, quantity=nueva_cantidad, unit_price=product.price)
         db.add(cart_detail)
     db.commit()
@@ -55,5 +58,8 @@ def remove_product_from_cart(db: Session, cart: Cart, product_id: int) -> None:
     db.commit()
 
 def clear_cart(db: Session, cart: Cart) -> None:
+    """
+    Elimina todos los productos del carrito.
+    """
     db.query(CartDetail).filter(CartDetail.cart_id == cart.id).delete()
     db.commit()
