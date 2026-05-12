@@ -88,6 +88,29 @@ def delete_user(db: Session, user_id: int):
     if not user:
         return None
     
+    # Verificar si tiene pedidos como cliente
+    from app.modules.orders.models import Order
+    has_orders_client = db.query(Order).filter(Order.client_id == user_id).first()
+    if has_orders_client:
+        raise ValueError("No se puede eliminar el usuario porque tiene pedidos asociados como cliente. Desactívelo en su lugar.")
+    
+    # Verificar si tiene pedidos como asesor
+    has_orders_advisor = db.query(Order).filter(Order.advisor_id == user_id).first()
+    if has_orders_advisor:
+        raise ValueError("No se puede eliminar el usuario porque tiene pedidos asociados como asesor. Desactívelo en su lugar.")
+    
+    # Verificar si tiene carrito
+    from app.modules.carts.models import Cart
+    has_cart = db.query(Cart).filter(Cart.user_id == user_id).first()
+    if has_cart:
+        raise ValueError("No se puede eliminar el usuario porque tiene un carrito asociado. Desactívelo en su lugar.")
+    
+    # Verificar si tiene notificaciones
+    from app.modules.notifications.models import Notification
+    has_notifications = db.query(Notification).filter(Notification.user_id == user_id).first()
+    if has_notifications:
+        raise ValueError("No se puede eliminar el usuario porque tiene notificaciones asociadas. Desactívelo en su lugar.")
+    
     db.delete(user)
     db.commit()
-    return True  
+    return True

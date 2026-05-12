@@ -17,6 +17,10 @@ from app.modules.users.models import User as UserModel
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+def get_role_name(user: UserModel) -> str:
+    return (user.role.name or "").strip().lower() if user.role else ""
+
+
 @router.get("/", response_model=List[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
@@ -177,26 +181,22 @@ def toggle_active(
     return user
 
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}")
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user)
 ):
-    role_name = (
-        (current_user.role.name or "").strip().lower()
-        if current_user.role else ""
-    )
-
-    # SOLO ADMINISTRADOR PUEDE ELIMINAR USUARIOS
+    role_name = get_role_name(current_user)
     if role_name != "administrador":
         raise HTTPException(status_code=403, detail="No tiene permisos")
-
-    target_user = services.get_user_by_id(db, user_id)
-
-    if not target_user:
+    
+    try:
+        result = services.delete_user(db, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    if not result:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    services.delete_user(db, user_id)
-    return None  
-    services.delete_user(db, user_id)
+    
+    return {"message": "Usuario eliminado correctamente"}

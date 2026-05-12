@@ -25,7 +25,8 @@ def get_companies(
     current_user: UserModel = Depends(get_current_user)
 ):
     role_name = get_role_name(current_user)
-    if role_name != "administrador":
+    # permite administrador Y asesor
+    if role_name not in ["administrador", "asesor"]:
         raise HTTPException(status_code=403, detail="No tiene permisos")
     companies = services.get_companies(db)
     if not companies:
@@ -40,7 +41,8 @@ def get_company(
     current_user: UserModel = Depends(get_current_user)
 ):
     role_name = get_role_name(current_user)
-    if role_name != "administrador":
+    # permite administrador Y asesor
+    if role_name not in ["administrador", "asesor"]:
         raise HTTPException(status_code=403, detail="No tiene permisos")
     company = services.get_company_by_id(db, company_id)
     if not company:
@@ -95,3 +97,21 @@ def toggle_active(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     return company
+
+
+@router.delete("/{company_id}")
+def delete_company(
+    company_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    role_name = get_role_name(current_user)
+    if role_name != "administrador":
+        raise HTTPException(status_code=403, detail="No tiene permisos")
+    try:
+        company = services.delete_company(db, company_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    return {"message": "Empresa eliminada correctamente"}

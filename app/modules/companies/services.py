@@ -10,9 +10,15 @@ def get_company_by_id(db: Session, company_id: int):
     return db.query(Company).filter(Company.id == company_id).first()
 
 def create_company(db: Session, data: CompanyCreate):
-    existing = db.query(Company).filter(Company.rfc == data.rfc).first()
-    if existing:
-        return None
+    # Validar RFC duplicado
+    existing_rfc = db.query(Company).filter(Company.rfc == data.rfc).first()
+    if existing_rfc:
+        raise ValueError("El RFC ya está registrado")
+    
+    # Validar nombre duplicado
+    existing_name = db.query(Company).filter(Company.name == data.name).first()
+    if existing_name:
+        raise ValueError("El nombre de empresa ya está registrado")
 
     new_company = Company(
         name=data.name,
@@ -60,4 +66,25 @@ def toggle_company_active(db: Session, company_id: int):
     company.active = not company.active
     db.commit()
     db.refresh(company)
+    return company
+
+def delete_company(db: Session, company_id: int):
+    company = get_company_by_id(db, company_id)
+    if not company:
+        return None
+    
+    # Verificar si tiene usuarios asociados
+    from app.modules.users.models import User
+    has_users = db.query(User).filter(User.company_id == company_id).first()
+    if has_users:
+        raise ValueError("No se puede eliminar la empresa porque tiene clientes asociados. Desactívela en su lugar.")
+    
+    # Verificar si tiene pedidos asociados
+    from app.modules.orders.models import Order
+    has_orders = db.query(Order).filter(Order.company_id == company_id).first()
+    if has_orders:
+        raise ValueError("No se puede eliminar la empresa porque tiene pedidos asociados. Desactívela en su lugar.")
+    
+    db.delete(company)
+    db.commit()
     return company
