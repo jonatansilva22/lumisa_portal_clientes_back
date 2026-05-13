@@ -15,6 +15,7 @@ from app.modules.orders import router as orders_router
 from app.modules.chats import router as chats_router
 from app.modules.payments import router as payments_router
 from app.modules.dashboards import router as dashboards_router
+from app.modules.sales import router as sales_router
 from app.modules.notifications import router as notifications_router
 import app.modules.notifications.events  # noqa: F401
 
@@ -42,6 +43,7 @@ app.include_router(orders_router)
 app.include_router(chats_router)
 app.include_router(payments_router)
 app.include_router(dashboards_router)
+app.include_router(sales_router)
 app.include_router(notifications_router)
 
 @app.get("/")
