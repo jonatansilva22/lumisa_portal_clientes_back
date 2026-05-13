@@ -26,8 +26,10 @@ class ClientDashboardOut(BaseModel):
     orders_pie: PieChartData
     orders_bar: BarChartData
     recent_activity: List[str]
+    total_products: int
 
 class AdvisorDashboardOut(BaseModel):
+    companies_info: List[Dict[str, Any]]  # Igual que el admin
     companies_pie: PieChartData
     total_clients: int
     total_orders: int
@@ -45,6 +47,8 @@ class AdminDashboardOut(BaseModel):
     total_advisors: int
     total_admins: int
     total_companies: int
+    active_companies: int
+    inactive_companies: int
     total_orders: int
     total_payments: float
     total_products: int

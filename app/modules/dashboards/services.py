@@ -3,6 +3,11 @@ from sqlalchemy.orm import Session
 from app.modules.users.models import User
 from . import schemas
 from app.core.logging import get_recent_activity_log
+from app.modules.companies.models import Company
+from app.modules.products.models import Product
+from app.modules.carts.models import CartDetail
+from app.modules.payments.models import Payment
+from app.modules.orders.models import Order
 
 def get_dashboard_cliente(db: Session, user: User) -> schemas.ClientDashboardOut:
     # Información de la empresa asociada al usuario
@@ -68,6 +73,8 @@ def get_dashboard_cliente(db: Session, user: User) -> schemas.ClientDashboardOut
     bar_labels = sorted(bar_counter.keys())
     bar_values = [bar_counter[m] for m in bar_labels]
     orders_bar = schemas.BarChartData(labels=bar_labels, values=bar_values)
+    # Total de productos activos en el sistema
+    total_products = db.query(Product).filter(Product.active == True).count()
     recent_activity = get_recent_activity_log(10)
     return schemas.ClientDashboardOut(
         total_orders=total_orders,
@@ -79,14 +86,14 @@ def get_dashboard_cliente(db: Session, user: User) -> schemas.ClientDashboardOut
         orders_pie=orders_pie,
         orders_bar=orders_bar,
         recent_activity=recent_activity,
-        company_info=company_info
+        company_info=company_info,
+        total_products=total_products
     )
 
 def get_dashboard_asesor(db: Session, user: User) -> schemas.AdvisorDashboardOut:
     # Órdenes gestionadas por el asesor
     orders = db.query(user.__class__).filter_by(id=user.id).first().orders_advisor
     # Gráfica de empresas: cantidad de órdenes gestionadas por empresa
-    from app.modules.companies.models import Company
     company_counter = {}
     for order in orders:
         if order.company:
@@ -146,7 +153,23 @@ def get_dashboard_asesor(db: Session, user: User) -> schemas.AdvisorDashboardOut
     bar_values = [bar_counter[m] for m in bar_labels]
     orders_bar = schemas.BarChartData(labels=bar_labels, values=bar_values)
     recent_activity = get_recent_activity_log(10)
+    # Obtener todas las empresas igual que el admin
+    companies = db.query(Company).all()
+    companies_info = [
+        {
+            "id": c.id,
+            "name": c.name,
+            "rfc": c.rfc,
+            "address": c.address,
+            "phone": c.phone,
+            "email": c.email,
+            "active": c.active,
+            "observations": c.observations
+        }
+        for c in companies
+    ]
     return schemas.AdvisorDashboardOut(
+        companies_info=companies_info,
         total_clients=total_clients,
         total_orders=total_orders,
         orders_by_status=orders_by_status,
@@ -171,25 +194,22 @@ def get_dashboard_admin(db: Session) -> schemas.AdminDashboardOut:
     total_advisors = role_counter.get("asesor", 0)
     total_admins = role_counter.get("administrador", 0) + role_counter.get("admin", 0)
     # Empresas
-    from app.modules.companies.models import Company
     companies = db.query(Company).all()
     total_companies = len(companies)
+    active_companies = len([c for c in companies if c.active])
+    inactive_companies = total_companies - active_companies
     # Órdenes
-    from app.modules.orders.models import Order
     orders = db.query(Order).all()
     total_orders = len(orders)
     # Pagos
-    from app.modules.payments.models import Payment
     payments = db.query(Payment).all()
     total_payments = float(sum(float(p.amount or 0) for p in payments if p.status and p.status.name.lower() == "autorizado"))
     # Productos
-    from app.modules.products.models import Product
     products = db.query(Product).all()
     total_products = len(products)
     active_products = len([p for p in products if p.active])
     inactive_products = total_products - active_products
     # Productos en carritos
-    from app.modules.carts.models import CartDetail
     products_in_carts = db.query(CartDetail).count()
     # Pagos por estado
     payment_status = schemas.PaymentStatusSummary()
@@ -250,6 +270,8 @@ def get_dashboard_admin(db: Session) -> schemas.AdminDashboardOut:
         total_advisors=total_advisors,
         total_admins=total_admins,
         total_companies=total_companies,
+        active_companies=active_companies,
+        inactive_companies=inactive_companies,
         total_orders=total_orders,
         total_payments=total_payments,
         total_products=total_products,
