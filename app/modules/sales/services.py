@@ -25,14 +25,23 @@ def get_purchase_history(db: Session, user_id: int, period: Optional[str], start
         paid_payment = next((p for p in order.payments if p.status and p.status.name.lower() == "pagado"), None)
         if not paid_payment:
             continue
-        total_spent += float(order.total_payment or 0)
+        # Nuevos campos
+        product_names = [detail.product.name for detail in order.order_details]
+        products_price = float(sum(float(detail.unit_price) * detail.quantity for detail in order.order_details))
+        shipping_price = float(order.shipping_price or 0)
+        total_price = products_price + shipping_price
+        total_spent += total_price
         purchases.append(PurchaseHistoryOut(
             order_id=order.id,
             folio=order.folio,
             company_id=order.company_id,
             company_name=order.company.name if order.company else "",
             total_payment=float(order.total_payment or 0),
-            paid_at=paid_payment.paid_at.date() if paid_payment.paid_at else None
+            paid_at=paid_payment.paid_at.date() if paid_payment.paid_at else None,
+            product_names=product_names,
+            products_price=products_price,
+            shipping_price=shipping_price,
+            total_price=total_price
         ))
     return PurchaseHistoryResponse(
         total_purchases=len(purchases),
@@ -73,7 +82,11 @@ def get_sales_history(db: Session, period: Optional[str], start_date: Optional[d
         paid_payment = next((p for p in order.payments if p.status and p.status.name.lower() == "pagado"), None)
         if not paid_payment:
             continue
-        total_earnings += float(order.total_payment or 0)
+        product_names = [detail.product.name for detail in order.order_details]
+        products_price = float(sum(float(detail.unit_price) * detail.quantity for detail in order.order_details))
+        shipping_price = float(order.shipping_price or 0)
+        total_price = products_price + shipping_price
+        total_earnings += total_price
         sales.append(SaleHistoryOut(
             order_id=order.id,
             folio=order.folio,
@@ -82,7 +95,11 @@ def get_sales_history(db: Session, period: Optional[str], start_date: Optional[d
             company_id=order.company_id,
             company_name=order.company.name if order.company else "",
             total_payment=float(order.total_payment or 0),
-            paid_at=paid_payment.paid_at.date() if paid_payment.paid_at else None
+            paid_at=paid_payment.paid_at.date() if paid_payment.paid_at else None,
+            product_names=product_names,
+            products_price=products_price,
+            shipping_price=shipping_price,
+            total_price=total_price
         ))
     return SalesHistoryResponse(
         total_sales=len(sales),

@@ -16,7 +16,11 @@ class SaleHistoryOut(BaseModel):
     company_name: str
     total_payment: float
     paid_at: date
-
+    # Nuevos campos
+    product_names: List[str]
+    products_price: float
+    shipping_price: float
+    total_price: float
 class SalesHistoryResponse(BaseModel):
     total_sales: int
     total_earnings: float
@@ -30,7 +34,11 @@ class PurchaseHistoryOut(BaseModel):
     company_name: str
     total_payment: float
     paid_at: date
-
+    # Nuevos campos
+    product_names: List[str]
+    products_price: float
+    shipping_price: float
+    total_price: float
 class PurchaseHistoryResponse(BaseModel):
     total_purchases: int
     total_spent: float
