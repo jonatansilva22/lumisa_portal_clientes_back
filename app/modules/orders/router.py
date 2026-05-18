@@ -8,12 +8,24 @@ from app.modules.users.models import User
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
+# Endpoint para crear pedido desde carrito
 @router.post("/from-cart", response_model=schemas.OrderOut, status_code=status.HTTP_201_CREATED)
 def create_order_from_cart(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
         return services.create_order_from_cart(db, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+# Endpoint para actualizar el precio de envío (solo staff)
+@router.put("/{order_id}/shipping-price", response_model=schemas.OrderOut, dependencies=[Depends(staff_required)])
+def update_shipping_price(order_id: int, shipping_price: float, db: Session = Depends(get_db)):
+    order = services.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
+    return update_shipping_price_service(db, order, shipping_price)
+
+# Importar la función correctamente del módulo services
+from app.modules.orders.services import update_shipping_price as update_shipping_price_service
 
 @router.get("/me", response_model=List[schemas.OrderOut])
 def get_my_orders(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -39,7 +51,6 @@ def cancel_my_order(order_id: int, db: Session = Depends(get_db), current_user: 
 @router.get("/", response_model=List[schemas.OrderOut], dependencies=[Depends(staff_required)])
 def get_all_orders(db: Session = Depends(get_db)):
     return services.get_all_orders(db)
-
 
 # Asignar asesor a un pedido
 @router.get("/statuses", response_model=List[schemas.OrderStatusOut])

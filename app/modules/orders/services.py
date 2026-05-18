@@ -13,10 +13,13 @@ def create_order_from_cart(db: Session, user: User) -> Order:
     if not cart or not cart.cart_details:
         raise ValueError("El carrito está vacío.")
     # Crear la orden
+    shipping_price = 0  # Por defecto, el envío es 0 al crear
+    subtotal = sum(cd.quantity * cd.unit_price for cd in cart.cart_details)
     order = Order(
         folio="",  # Se debe generar un folio único
         description=None,
-        total_payment=sum(cd.quantity * cd.unit_price for cd in cart.cart_details),
+        total_payment=subtotal + shipping_price,
+        shipping_price=shipping_price,
         status_id=1,  # Estado inicial: pendiente
         client_id=user.id,
         advisor_id=None,  # El asesor se asigna después
@@ -44,6 +47,17 @@ def create_order_from_cart(db: Session, user: User) -> Order:
         db.add(order_detail)
     # Vaciar el carrito
     db.query(CartDetail).filter(CartDetail.cart_id == cart.id).delete()
+    db.commit()
+    db.refresh(order)
+    return order
+
+def update_shipping_price(db: Session, order: Order, shipping_price: float):
+    # Validar rango permitido
+    if shipping_price < 0 or shipping_price > 999999.99:
+        raise ValueError("El precio de envío debe estar entre 0 y 999999.99")
+    subtotal = sum(detail.quantity * float(detail.unit_price) for detail in order.order_details)
+    order.shipping_price = shipping_price
+    order.total_payment = subtotal + shipping_price
     db.commit()
     db.refresh(order)
     return order

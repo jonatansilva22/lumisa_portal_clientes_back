@@ -21,6 +21,7 @@ class OrderDetailOut(OrderDetailBase):
 class OrderBase(BaseModel):
     description: Optional[str] = None
     company_id: int
+    shipping_price: Optional[float] = 0
 
 class OrderCreate(OrderBase):
     pass
@@ -43,6 +44,7 @@ class OrderOut(OrderBase):
     id: int
     folio: str
     total_payment: Decimal
+    shipping_price: Decimal
     status_id: int
     client: UserShortOut
     advisor: Optional[UserShortOut]
