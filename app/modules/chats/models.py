@@ -1,13 +1,9 @@
-from sqlalchemy import Column, Integer, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Text, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone, timedelta
+import sqlalchemy as sa
 from app.db.base import Base
 
-# Zona horaria México (UTC-6)
-MEXICO_TZ = timezone(timedelta(hours=-6))
 
-def mexico_now():
-    return datetime.now(MEXICO_TZ)
 
 class Chat(Base):
     __tablename__ = "chats"
@@ -16,8 +12,9 @@ class Chat(Base):
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     message = Column(Text, nullable=False)
+    file_url = Column(String(255))  # URL de archivo o imagen en S3
     read = Column(Boolean, default=False, nullable=False)
-    sent_at = Column(DateTime, default=mexico_now)
+    sent_at = Column(DateTime(timezone=True), server_default=sa.text("DATE_ADD(now(), INTERVAL -6 HOUR)"), nullable=True)
 
     order = relationship("Order", back_populates="chats")
     sender = relationship("User", foreign_keys=[sender_id], back_populates="chats_sent")

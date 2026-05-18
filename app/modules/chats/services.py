@@ -17,6 +17,7 @@ def create_message(db: Session, data: ChatCreate, sender_id: int):
         sender_id=sender_id,
         receiver_id=data.receiver_id,
         message=data.message,
+        file_url=data.file_url,
         read=False,
     )
     db.add(message)

@@ -5,7 +5,8 @@ from typing import Optional
 class ChatCreate(BaseModel):
     order_id: int
     receiver_id: int
-    message: str
+    message: str = ""
+    file_url: Optional[str] = None
 
 class ChatResponse(BaseModel):
     id: int
@@ -13,6 +14,7 @@ class ChatResponse(BaseModel):
     sender_id: int
     receiver_id: int
     message: str
+    file_url: Optional[str] = None
     read: bool
     sent_at: datetime
 
