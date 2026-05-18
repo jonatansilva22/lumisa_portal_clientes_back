@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, SmallInteger, Numeric, ForeignKey, DateTime, Boolean, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import sqlalchemy as sa
 from app.db.base import Base
 
 class PaymentMethod(Base):
@@ -25,7 +26,7 @@ class Payment(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
     status_id = Column(SmallInteger, ForeignKey("payment_statuses.id"), nullable=False, index=True)
     method_id = Column(SmallInteger, ForeignKey("payment_methods.id"), nullable=False, index=True)
-    paid_at = Column(DateTime, nullable=True)
+    paid_at = Column(DateTime(timezone=True), server_default=sa.text("DATE_ADD(now(), INTERVAL -6 HOUR)"), nullable=True)
 
     order = relationship("Order", back_populates="payments")
     status = relationship("PaymentStatus", back_populates="payments")

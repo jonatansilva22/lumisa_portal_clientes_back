@@ -3,7 +3,6 @@ from app.modules.payments.models import Payment, PaymentMethod, PaymentStatus
 from app.modules.orders.models import Order
 from app.modules.payments.schemas import PaymentCreate
 from decimal import Decimal
-from datetime import datetime
 import mercadopago
 import os
 
@@ -60,7 +59,7 @@ def create_payment(db: Session, payment_in: PaymentCreate) -> Payment:
         order_id=payment_in.order_id,
         method_id=payment_in.method_id,
         status_id=1,  # pendiente
-        paid_at=None
+        paid_at=None  # Cuando el pago se confirme, asigna: paid_at=mexico_now()
     )
     db.add(payment)
     db.commit()
