@@ -18,8 +18,6 @@ class Notification(Base):
     type = Column("title", String(50), nullable=False)
     message = Column(Text, nullable=False)
     read = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=mexico_now)
-    updated_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="notifications")
     order = relationship("Order", back_populates="notifications")
