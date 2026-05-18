@@ -24,15 +24,9 @@ app = FastAPI(
     version="0.1.0"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-#setup_cors(app, settings.cors_origins)
+
+setup_cors(app, settings.cors_origins)
 
 app.include_router(auth_router)
 app.include_router(products_router)
