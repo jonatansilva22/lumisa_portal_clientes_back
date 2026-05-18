@@ -1,8 +1,8 @@
-#Modulo Usuarios
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List
-
+import os
+from app.utils.s3 import generate_presigned_url
 from app.db.deps import get_db
 from app.core.auth import get_current_user
 from app.modules.users import services
@@ -15,6 +15,25 @@ from app.modules.users.schemas import (
 from app.modules.users.models import User as UserModel
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+@router.post("/s3-upload-url", response_model=dict)
+def get_s3_upload_url(
+    filename: str = Body(..., embed=True),
+    content_type: str = Body(..., embed=True),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """
+    Devuelve una URL presignada para subir una foto de perfil a S3. Cualquier usuario autenticado puede usarlo.
+    """
+    _ = current_user  # Solo fuerza autenticación
+    bucket = os.getenv("AWS_S3_BUCKET")
+    if not bucket:
+        raise HTTPException(status_code=500, detail="No está configurado el bucket de S3")
+    key = f"users/{filename}"
+    url = generate_presigned_url(bucket, key, content_type)
+    if not url:
+        raise HTTPException(status_code=500, detail="No se pudo generar la URL presignada")
+    return {"upload_url": url, "object_url": f"https://{bucket}.s3.amazonaws.com/{key}"}
 
 
 def get_role_name(user: UserModel) -> str:
