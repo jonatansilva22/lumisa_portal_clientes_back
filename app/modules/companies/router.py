@@ -25,13 +25,9 @@ def get_companies(
     current_user: UserModel = Depends(get_current_user)
 ):
     role_name = get_role_name(current_user)
-    # permite administrador Y asesor
     if role_name not in ["administrador", "asesor"]:
         raise HTTPException(status_code=403, detail="No tiene permisos")
-    companies = services.get_companies(db)
-    if not companies:
-        raise HTTPException(status_code=404, detail="No hay empresas registradas")
-    return companies
+    return services.get_companies(db)
 
 
 @router.get("/{company_id}", response_model=CompanyResponse)
