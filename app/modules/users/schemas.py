@@ -19,6 +19,8 @@ def validate_password_strength(password: str) -> str:
         raise ValueError("La contraseña debe tener al menos una mayúscula")
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=/\\]", password):
         raise ValueError("La contraseña debe tener al menos un carácter especial")
+    if not re.search(r"[0-9]", password):                          
+        raise ValueError("La contraseña debe tener al menos un número")
     return password
 
 # para crear un usuario, lo que manda el admin
